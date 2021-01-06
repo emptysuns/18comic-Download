@@ -1,5 +1,5 @@
 # 18comic-Download
-python爬虫自动多线程下载禁漫天堂漫画
+python爬虫自动多线程下载禁漫天堂漫画 18comic.vip
 
 终于到这个时间了
 
@@ -8,7 +8,7 @@ python爬虫自动多线程下载禁漫天堂漫画
 学了这么久python了终于到它用武之地了
 
 如果对您有那么一点点的帮助请帮我点个star，如果有问题请在issue内提出
-
+博客原文地址: https://blog.acglove.cloud/?p=35
 
 必看声明:
 
