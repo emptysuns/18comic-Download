@@ -27,9 +27,9 @@
 
 同时该脚本开启多线程下载（默认64线程），基本能跑满宽带
 
-如果对您有那么一点点的帮助请帮我点个star，如果有问题请在issue内提出
+如果对您有那么一点点的帮助请帮我点个**star**，如果有问题请在issue内提出
 
-博客介绍地址: https://blog.acglove.cloud/?p=35
+***更加详细的介绍地址***: https://blog.acglove.cloud/?p=35
 
 
 ##### windows exe 使用展示
