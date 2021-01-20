@@ -61,7 +61,7 @@ https://18comic.org/album/232758/%E7%B4%97%E5%A4%9C%E8%88%87%E6%97%A5%E8%8F%9C-b
 
 
 2. 
-https://18comic.org/photo/232758/](http://note.youdao.com/)
+https://18comic.org/photo/232758/
 ![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_4.png)
 
 
