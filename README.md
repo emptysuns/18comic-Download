@@ -1,5 +1,21 @@
+
+```
+```
 # 18comic-Download
-python爬虫自动多线程下载禁漫天堂漫画 18comic.vip
+### python爬虫自动多线程下载禁漫天堂漫画 18comic.vip
+
+*本脚本仅作学习交流，不能用于任何侵犯它人权益的行为。侵删！*
+
+如果您觉得侵犯您合法权益后，请联系TG: [@Core_i0](https://t.me/Core_i0)
+
+我会进行删库操作，永不更新。或者您使用过程中遇到某些问题也请发issue或者直接去联系TG~~（~~因为作者一般不会在github闲逛，一般在水TG群~~）~~。
+
+
+```
+2021/01/20更新:  解决了下载图片被分割的问题,原网站对源图片资源进行了反爬虫，现在下载comic images正常了。
+```
+
+
 
 终于到这个时间了
 
@@ -7,18 +23,40 @@ python爬虫自动多线程下载禁漫天堂漫画 18comic.vip
 
 学了这么久python了终于到它用武之地了
 
+学习之余，写了这个下载脚本，用来下载18comic.vip的images
+
+同时该脚本开启多线程下载（默认64线程），基本能跑满宽带
+
 如果对您有那么一点点的帮助请帮我点个star，如果有问题请在issue内提出
-博客原文地址: https://blog.acglove.cloud/?p=35
 
-必看声明:
+博客介绍地址: https://blog.acglove.cloud/?p=35
 
-使用前请安装解析库beautifulsoup 如果不会请谷歌
 
-这里的main方法里的url是指的，观看界面的url，其实也可以设置成别的，但是没有去找，毕竟现在我暂时没有这方面的要求。而且很多地方没有修改，没有去加上判断异常的操作什么的，这能看到就只有下载这个东西。
+##### windows exe 使用展示
 
-传入的url例如 https://18comic.org/photo/2394/ 
+![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_2.png)
+##### 直接py脚本运行展示
+![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_1-1.png)
 
-在使用前你应该创建一个文件夹名为 img download（我知道这样很麻烦，但是我懒得改了）
-将它和脚本放在同一个目录
 
-就先这样吧，如果有别的需求我再更新吧。
+## 必看声明:
+- 安装所需依赖库
+```
+pip3 install beautifulsoup PIL
+```
+- 传入url地址格式: 
+您应该传入url应为如下举例
+1. 
+https://18comic.org/album/232758/%E7%B4%97%E5%A4%9C%E8%88%87%E6%97%A5%E8%8F%9C-bang-dream-ezr%E5%80%8B%E4%BA%BA%E6%BC%A2%E5%8C%96-ryu-minbs-%E6%B5%81%E6%B0%91-%E7%B4%97%E5%A4%9C%E3%81%95%E3%82%93%E3%81%A8%E6%97%A5%E8%8F%9C%E3%81%A1%E3%82%83%E3%82%93-bang-dream
+
+![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_3.png)
+
+
+2. 
+https://18comic.org/photo/232758/](http://note.youdao.com/)
+![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_4.png)
+
+
+!仅支持这两种url！
+```
+```
