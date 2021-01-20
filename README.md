@@ -2,7 +2,7 @@
 ```
 ```
 # 18comic-Download
-### python爬虫自动多线程下载禁漫天堂漫画 18comic.vip
+### python爬虫自动多线程下载禁漫天堂 18comic.vip
 
 *本脚本仅作学习交流，不能用于任何侵犯它人权益的行为。侵删！*
 
@@ -33,6 +33,14 @@
 
 
 ##### windows exe 使用展示
+
+可直接去release里下载打包好的exe文件
+
+或者自己打包
+```
+pyinstaller --onefile Catch18comic.py
+```
+
 
 ![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_2.png)
 ##### 直接py脚本运行展示
