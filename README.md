@@ -1,7 +1,7 @@
 
 ```
 ```
-# 18comic-Download
+# 18comic-Download(禁漫天堂)
 ### python爬虫自动多线程下载禁漫天堂 18comic.vip
 
 *本脚本仅作学习交流，不能用于任何侵犯它人权益的行为。侵删！*
