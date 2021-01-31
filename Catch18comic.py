@@ -134,12 +134,65 @@ def main(id):
         re_download_count += 1
     print("所有comic image下载成功，共" + str(len(url_path_list)) + "张。enjoy!\n\n")
 
+def checkPluralPage(url): #判断是不是有复数章节需要下载，有返回True，无返回False
+    response = get(url)
+    html = response.text
+    soup = BeautifulSoup(html, 'lxml')
+    switch_btn_class = soup.find_all(name='a', attrs={'class': 'switch_btn'})
+    if switch_btn_class:
+        flag = True
+    else:
+        flag = False
+    return flag
+
+def getChapterList(url):
+    response = get(url)
+    html = response.text
+    soup = BeautifulSoup(html, 'lxml')
+    btn_toolbar_class = soup.find_all(name='ul', attrs={'class': 'btn-toolbar'})
+    pattern = re.compile('<a href="/photo/(.*?)">.*?</a>', re.S)
+    chapter_find = []
+    for a in btn_toolbar_class[0].contents:
+        id = re.findall(pattern, str(a))
+        if id:
+            chapter_find.append(id)
+    last_chapter = []
+    for chapter in chapter_find:  # findall查找的出的是返回列表，"暂时"这么让它返回列表，便于后续操作
+        last_chapter.append(chapter[0])
+    return last_chapter
+
+
 if __name__ == '__main__':
     multiprocessing.freeze_support() #防止pyinstaller()打包过程中出现由于开启多进程打包错误
     print('18comic.vip Downloader by emptysuns.\n请不要用于任何非法用途，仅作学习交流\n版本:Version 2.0\n下载链接格式请参照：\nhttps://github.com/emptysuns/18comic-Download\thttps://blog.acglove.cloud/?p=35\n')
     download_count = 1
     while(1):
         url = input('第'+str(download_count)+'次下载,请输入您想要下载comic的下载链接:\n')
-        id = url.split('/')[4]
-        main(id)
-        download_count += 1
+        flag = checkPluralPage(url)
+        if flag: #有就进行解析，无就直接下载
+            id = url.split('/')[4]
+            check_all_download = input('Tips:检测到您输入的链接是包括多个章节的，请判断是否将所有章节都下载：\n输入数字1:下载全部章节\t输入数字0:只下载当前章节\n')
+            if check_all_download == '1' or check_all_download == '0':
+                if check_all_download == '1':
+                    chapter_list = getChapterList(url)
+                    # print(chapter_list) # 调试输出是否得到所有下载id
+                    print('当前共有'+str(len(chapter_list))+'话需下载\n')
+                    chapter_count = 1
+                    for id in chapter_list:
+                        print('正在下载第'+str(chapter_count)+'话，请稍后...')
+                        main(id)
+                        chapter_count += 1
+                    print('共'+str(len(chapter_list))+'话下载完毕！\n')
+                    download_count += 1
+                else:
+                    id = url.split('/')[4]
+                    main(id)
+                    download_count += 1
+            else:
+                print("请输入的合法字符")
+                download_count += 1
+                continue
+        else:
+            id = url.split('/')[4]
+            main(id)
+            download_count += 1
