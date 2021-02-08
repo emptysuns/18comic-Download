@@ -1,17 +1,20 @@
 from requests import *
 from bs4 import BeautifulSoup
-from multiprocessing import Pool
 from PIL import Image ##调用image库对有反转的图片进行转换
 from io import BytesIO
 import os #创建文件夹，保存下载好的图片
 import re
-import multiprocessing
+import threading #多线程支持库，对于这种io密集操作相对于多进程还是换成多线程比较好
+import time
 '''
 基于BeautifulSoup解析库的py爬虫爬取18comic
 '''
 public_headers = {
     'user-agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36'
 }
+
+ERROR_PAGE_LIST = [] #声明一个全局变量，用来储存因诸如网络等不可抗元素导致的下载失败，从而进行重新下载！（这个变量只是存储单次下载的错误）
+
 def checkImgConvert(url): #判断图片是否做过反爬机制，比较狂野的使用id分析,没有对前端进行分析来判断
     pass
 
@@ -85,54 +88,31 @@ def download_image(url_path):# 下载图片,定义一个方法方便开启多线
     url = url_path[0]
     path = url_path[1]
     convert_status = url_path[2]
+    global ERROR_PAGE_LIST #全局变量
     try:
         comic_page = get(url, headers=public_headers)
         if comic_page.status_code != 200:
             # print('!= 200')
-            return url_path
+            ERROR_PAGE_LIST.append(url_path)
+            pass
     except Exception:
         # print('Download Error')
-        return url_path
+        ERROR_PAGE_LIST.append(url_path)
+        pass
     comic_name = url.split('/')[-1].split('?')[0]
     comic_local_position = path + '/' + comic_name
     image_bytes = BytesIO(comic_page.content)
-    if image_bytes.__sizeof__() >= 1:
+    if image_bytes.__sizeof__() >= 1: #防止下载的图片为0kb，玄学？！
         image_source = Image.open(image_bytes)
         image_source.save(comic_local_position)
     else:
         # print('content is lost')
-        return url_path
+        ERROR_PAGE_LIST.append(url_path)
+        pass
     if convert_status:
-        convertImg(comic_local_position)
-    return None # 成功返回None
-
-
-def main(id):
-    convert_status = False
-    id = int(id)
-    if id >= 220971:
-        convert_status = True
-    url = 'https://18comic.org/photo/' + str(id)
-    print('解析成功,开始下载',url)
-    path = makeDir(url)
-    print('成功创建目录', path)
-    url_list = get_url_list(url)
-    url_path_list = [] # 这里创建一个列表作为传入map的值，里面加入path，屏蔽map只支持传入一个参数的问题
-    for url_in_list in url_list:
-        url_path_list.append((url_in_list, path, convert_status))
-    print('正在开始多线程下载(默认64线程)请稍后......')
-    pool = Pool(processes = 64) #改变下载进程数
-    un_successful_list = pool.map(download_image, url_path_list) # 用于存放未下载成功图片路径
-    while None in un_successful_list:
-        un_successful_list.remove(None) #清洗None成功的下载
-    while un_successful_list:
-        re_download_count = 1
-        print('当前有'+str(len(un_successful_list))+'张comic image由于不可抗网络因素下载失败，正在第'+str(re_download_count)+'次重新下载...')
-        un_successful_list = pool.map(download_image, un_successful_list) #再进行下载
-        while None in un_successful_list:
-            un_successful_list.remove(None)
-        re_download_count += 1
-    print("所有comic image下载成功，共" + str(len(url_path_list)) + "张。enjoy!\n\n")
+        convertImg(comic_local_position) # 对“无耻”的以修改图片的反爬虫机制进行反制！
+    if url_path in ERROR_PAGE_LIST: # 如果下载成功就再下载列表删除它
+        ERROR_PAGE_LIST.remove(url_path)
 
 def checkPluralPage(url): #判断是不是有复数章节需要下载，有返回True，无返回False
     response = get(url)
@@ -145,6 +125,7 @@ def checkPluralPage(url): #判断是不是有复数章节需要下载，有返�
         flag = False
     return flag
 
+# 得到多章节comic所有的url返回一个列表
 def getChapterList(url):
     response = get(url)
     html = response.text
@@ -161,10 +142,49 @@ def getChapterList(url):
         last_chapter.append(chapter[0])
     return last_chapter
 
+# 调用此方法来判断开启多线程程的个数
+def downloadByThread(comic_num, url_path_list):
+    thread_list = []  # 用于存放线程的列表
+    print('正在开始多线程下载（线程数量:' + str(comic_num) + ')请稍后......')
+    start_time = time.time()
+    for num in range(comic_num):
+        # 根据页数动态创建线程
+        thread_one = threading.Thread(target=download_image, name='DownloadPageIs' + str(num), args=(url_path_list[num],))
+        thread_list.append(thread_one)
+    for thread in thread_list:
+        thread.start()  # 开始线程
+    for thread in thread_list:
+        thread.join()  # 同步线程
+
+def main(id):
+    convert_status = False #设置处理反爬机制的问题,False为未对comic进行切割
+    id = int(id)
+    comic_num = 0 # 根据下载的页数决定线程数量
+    if id >= 220971:# 静态检测检测!!!有必要再改成动态
+        convert_status = True
+    url = 'https://18comic.org/photo/' + str(id)
+    re_download_count = 1 #由于网络等种种原因而重新下载次数
+    print('解析成功,开始下载',url)
+    path = makeDir(url)
+    print('成功创建目录', path)
+    url_list = get_url_list(url)
+    url_path_list = [] # 里面加入path等传入下载方法的信息
+    for url_in_list in url_list:
+        url_path_list.append((url_in_list, path, convert_status))
+    comic_num = len(url_path_list)
+    start_time = time.time()  # 开始执行时间
+    downloadByThread(comic_num, url_path_list)
+    while ERROR_PAGE_LIST:
+        print('当前有' + str(len(ERROR_PAGE_LIST)) + '张comic image由于不可抗网络因素下载失败，正在第' + str(
+            re_download_count) + '次重新下载...')
+        re_download_count += 1
+        comic_num = len(ERROR_PAGE_LIST)
+        downloadByThread(comic_num, ERROR_PAGE_LIST)
+    download_time = float(time.time() - start_time)
+    print("所有comic image下载成功，共" + str(len(url_path_list)) + "张,下载用时:%.1fS。enjoy!\n\n" % download_time)
 
 if __name__ == '__main__':
-    multiprocessing.freeze_support() #防止pyinstaller()打包过程中出现由于开启多进程打包错误
-    print('18comic.vip Downloader by emptysuns.\n请不要用于任何非法用途，仅作学习交流\n版本:Version 2.0\n下载链接格式请参照：\nhttps://github.com/emptysuns/18comic-Download\thttps://blog.acglove.cloud/?p=35\n')
+    print('18comic.vip Downloader by emptysuns.\n请不要用于任何非法用途，仅作学习交流\n版本:Version 2.2\n下载链接格式请参照：\nhttps://github.com/emptysuns/18comic-Download\thttps://blog.acglove.cloud/?p=35\n')
     download_count = 1
     while(1):
         url = input('第'+str(download_count)+'次下载,请输入您想要下载comic的下载链接:\n')
