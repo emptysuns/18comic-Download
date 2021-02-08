@@ -2,7 +2,7 @@
 ```
 ```
 # 18comic-Download(禁漫天堂)
-### python爬虫自动多线程下载禁漫天堂 18comic.vip
+### python爬虫多线程下载禁漫天堂comic 18comic.vip
 
 *本脚本仅作学习交流，不能用于任何侵犯它人权益的行为。侵删！*
 
@@ -12,8 +12,10 @@
 
 
 ```
-2021/01/20更新:  解决了下载图片被分割的问题,原网站对源图片资源进行了反爬虫，现在下载comic images正常了。
-2021/01/31更新:  增加下载多章节功能。
+# 请使用2.2之后的版本进行下载。其之前的版本由于多进程引发的一系列的问题，最严重的会使操作系统死锁！
+2021/01/20更新:version：2.0 解决了下载图片被分割的问题,原网站对源图片资源进行了反爬虫，现在下载comic images正常了。
+2021/01/31更新:version：2.1 增加下载多章节功能。
+2021/02/08更新:version：2.2 将多进程下载改成多线程下载。解决多进程闪退，error，因过密集io操作使系统发生死锁问题。进一步提高下载速度。
 ```
 
 
@@ -28,7 +30,7 @@
 
 同时该脚本开启多线程下载（默认64线程），基本能跑满宽带
 
-如果对您有那么一点点的帮助请帮我点个**星星**，如果有问题请在issue内提出
+如果对您有那么一点点的帮助请帮我点个**★**，如果有问题请在issue内提出
 
 ***更加详细的介绍地址***: https://blog.acglove.cloud/?p=35
 
@@ -45,7 +47,7 @@ pyinstaller --onefile Catch18comic.py
 
 ![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_2.png)
 ##### 直接py脚本运行展示
-![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_1-1.png)
+![image](https://blog.acglove.cloud/wp-content/uploads/2021/02/Screenshot_3.png)
 
 
 ## 必看声明:
@@ -66,6 +68,4 @@ https://18comic.org/photo/232758/
 ![image](https://blog.acglove.cloud/wp-content/uploads/2021/01/Screenshot_4.png)
 
 
-!仅支持这两种url！
-```
-```
+!仅支持这两种url，不支持其他形式url！
