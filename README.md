@@ -55,7 +55,7 @@ pyinstaller --onefile Catch18comic.py
 ## 必看声明:
 - 安装所需依赖库(直接运行脚本的话，打包好的exe可执行文件不需要安装依赖库)
 ```
-pip3 install beautifulsoup PIL
+pip3 install bs4 Pillow
 ```
 - 传入url地址格式: 
 您应该传入url应为如下举例
