@@ -48,8 +48,22 @@ def get_url_list(url): #得到图片的下载链接
     response = get(url, headers=public_headers)
     html = response.text
     soup = BeautifulSoup(html, 'lxml')
-    options_list = soup.find_all('select')[2].find_all('option') # 用来取出存放页数select中的option标签数量来计算页数
-    pages = len(options_list) # 设置一个变量表征页数
+    if soup.find_all("a",class_="prevnext") != [] :  #网页存在下一页按钮
+        # print("发现多个页面")
+        max_web_page_num = 2  # 默认只有两页
+        max_web_page_url = url + "?page=" + str(max_web_page_num)
+        last_web_page_num = int(soup.find_all("ul",class_="pagination")[0](string=True)[-2])  #最后一个是下一页按钮，倒数第二个是当前跳转最大页面
+        while last_web_page_num > max_web_page_num : #可跳转的最后页面大于记录的最大页数时，修正最大页数并检查
+            max_web_page_num = last_web_page_num
+            max_web_page_url = url + "?page=" + str(max_web_page_num)
+            # print("正在读取",max_web_page_url)
+            last_html = get(max_web_page_url, headers=public_headers).text
+            soup_lastpage = BeautifulSoup(last_html, 'lxml')
+            last_web_page_num = int(soup_lastpage.find_all("ul",class_="pagination")[0](string=True)[-2])  
+        print(url , "最大页数为：", str(max_web_page_num))
+    
+    options_list = soup_lastpage.find_all('select')[2].find_all('option') # 用来取出存放页数select中的option标签数量来计算页数
+    pages = len(options_list) + (max_web_page_num - 1 ) * 500 # 设置一个变量表征页数
     comic_page_urls = []     # 设置一个列表用来存储所有的最终url
     comic_page1_id = soup.find(id='album_photo_00001.jpg')['data-original']    # 存放每一页page图片 ## 取出第一页的页数根据页数的命名规则来自己计算出后面的页数的url，减少用库进行查的时间
     comic_page_url_head_temp = '/'.join(comic_page1_id.split('/')[:-1])     # 取出页数url判断之前的服务器路径
