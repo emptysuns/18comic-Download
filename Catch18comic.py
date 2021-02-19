@@ -27,7 +27,7 @@ def getMirror(): #获取镜像列表，以防网址无法访问
             try :
                 home = get("http://" + i.text +"/templates/frontend/airav/css/toastr.min.css", headers=public_headers).text
                 if len(home) >1: 
-                mirrors.append(i.text)
+                    mirrors.append(i.text)
             except Exception:
                 pass
         # mirrors 的默认排序就是发布页的排序。即JM主站、JM海外分流1、JM中国、JM中国分流1、JM中国分流2
