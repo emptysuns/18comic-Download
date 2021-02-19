@@ -195,7 +195,7 @@ def main(id):
         comic_num = len(ERROR_PAGE_LIST)
         downloadByThread(comic_num, ERROR_PAGE_LIST)
     download_time = float(time.time() - start_time)
-    print("所有comic image下载成功，共" + str(len(url_path_list)) + "张,下载用时:%.1fS。enjoy!\n\n" % download_time)
+    print("所有comic image下载成功，共" + str(len(url_path_list)) + "张（含0字节图片", str(len(WARNING_PAGE_LIST)),"张）,下载用时:%.1fS。enjoy!\n\n" % download_time)
 
 if __name__ == '__main__':
     print('18comic.vip Downloader by emptysuns.\n请不要用于任何非法用途，仅作学习交流\n版本:Version 2.2\n下载链接格式请参照：\nhttps://github.com/emptysuns/18comic-Download\thttps://blog.acglove.cloud/?p=35\n')
