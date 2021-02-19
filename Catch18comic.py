@@ -19,6 +19,23 @@ WARNING_PAGE_LIST = [] #存储有问题但不需要处理的图片。有些图�
 def checkImgConvert(url): #判断图片是否做过反爬机制，比较狂野的使用id分析,没有对前端进行分析来判断
     pass
 
+def getMirror(): #获取镜像列表，以防网址无法访问
+        mirrors = []
+        html = get("http://jmcomic.xyz/", headers=public_headers).text
+        soup = BeautifulSoup(html, 'lxml')
+        for i in soup.find_all("span",class_="has-luminous-vivid-orange-color"):
+            try :
+                home = get("http://" + i.text +"/templates/frontend/airav/css/toastr.min.css", headers=public_headers).text
+                if len(home) >1: 
+                mirrors.append(i.text)
+            except Exception:
+                pass
+        # mirrors 的默认排序就是发布页的排序。即JM主站、JM海外分流1、JM中国、JM中国分流1、JM中国分流2
+        # 没必要引入ping，否则会引入很多网络相关的模块，增加打包大小。这里直接粗暴下载首页面，失败踢掉。默认使用第一个能用的，即mirror[0]
+        # 改方法未使用，当今镜像为采纳输入下载地址时的url ！！！
+        # 考虑后续可能加入自动抓取更新，需要尽量直连，因此加入这个功能（不需要直连时，经梯子主站能访问则默认从主站下载）
+        return mirrors
+
 def convertImg(img_url):
         img = Image.open(img_url)
         img_size = img.size
@@ -169,13 +186,13 @@ def downloadByThread(comic_num, url_path_list):
     for thread in thread_list:
         thread.join()  # 同步线程
 
-def main(id):
+def main(mirror, id):
     convert_status = False #设置处理反爬机制的问题,False为未对comic进行切割
     id = int(id)
     comic_num = 0 # 根据下载的页数决定线程数量
     if id >= 220971:# 静态检测检测!!!有必要再改成动态
         convert_status = True
-    url = 'https://18comic.org/photo/' + str(id)
+    url = 'https://' + mirror +'/photo/' + str(id)
     re_download_count = 1 #由于网络等种种原因而重新下载次数
     print('解析成功,开始下载',url)
     path = makeDir(url)
@@ -202,9 +219,10 @@ if __name__ == '__main__':
     download_count = 1
     while(1):
         url = input('第'+str(download_count)+'次下载,请输入您想要下载comic的下载链接:\n')
+        id = url.split('/')[4]
+        mirror = url.split('/')[2]
         flag = checkPluralPage(url)
         if flag: #有就进行解析，无就直接下载
-            id = url.split('/')[4]
             check_all_download = input('Tips:检测到您输入的链接是包括多个章节的，请判断是否将所有章节都下载：\n输入数字1:下载全部章节\t输入数字0:只下载当前章节\n')
             if check_all_download == '1' or check_all_download == '0':
                 if check_all_download == '1':
@@ -214,13 +232,12 @@ if __name__ == '__main__':
                     chapter_count = 1
                     for id in chapter_list:
                         print('正在下载第'+str(chapter_count)+'话，请稍后...')
-                        main(id)
+                        main(mirror, id)
                         chapter_count += 1
                     print('共'+str(len(chapter_list))+'话下载完毕！\n')
                     download_count += 1
                 else:
-                    id = url.split('/')[4]
-                    main(id)
+                    main(mirror, id)
                     download_count += 1
             else:
                 print("请输入的合法字符")
@@ -228,5 +245,5 @@ if __name__ == '__main__':
                 continue
         else:
             id = url.split('/')[4]
-            main(id)
+            main(mirror, id)
             download_count += 1
