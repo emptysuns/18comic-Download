@@ -68,7 +68,7 @@ def get_url_list(url): #得到图片的下载链接
     soup = BeautifulSoup(html, 'lxml')
     if soup.find_all("a",class_="prevnext") != [] :  #网页存在下一页按钮
         # print("发现多个页面")
-        max_web_page_num = 2  # 默认只有两页
+        max_web_page_num = 1  # 因为有多页，所以最少2页，取初始值为1以便第一个while循环正常执行
         max_web_page_url = url + "?page=" + str(max_web_page_num)
         last_web_page_num = int(soup.find_all("ul",class_="pagination")[0](string=True)[-2])  #最后一个是下一页按钮，倒数第二个是当前跳转最大页面
         while last_web_page_num > max_web_page_num : #可跳转的最后页面大于记录的最大页数时，修正最大页数并检查
