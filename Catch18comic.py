@@ -78,6 +78,9 @@ def get_url_list(url): #得到图片的下载链接
             last_html = get(max_web_page_url, headers=public_headers).text
             soup_lastpage = BeautifulSoup(last_html, 'lxml')
             last_web_page_num = int(soup_lastpage.find_all("ul",class_="pagination")[0](string=True)[-2])  
+    else: #无翻页的情况
+        soup_lastpage = soup
+        max_web_page_num = 1
     options_list = soup_lastpage.find_all('select')[2].find_all('option') # 用来取出存放页数select中的option标签数量来计算页数
     pages = len(options_list) + (max_web_page_num - 1 ) * 500 # 设置一个变量表征页数
     print("页数位于", str(max_web_page_num), "网页文件内，共计 ", pages , "页")
