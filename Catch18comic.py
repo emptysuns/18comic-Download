@@ -14,6 +14,7 @@ public_headers = {
 }
 
 ERROR_PAGE_LIST = [] #声明一个全局变量，用来储存因诸如网络等不可抗元素导致的下载失败，从而进行重新下载！（这个变量只是存储单次下载的错误）
+WARNING_PAGE_LIST = [] #存储有问题但不需要处理的图片。有些图片经过人工验证发现在服务器上就是0字节，记录到这里但不处理
 
 def checkImgConvert(url): #判断图片是否做过反爬机制，比较狂野的使用id分析,没有对前端进行分析来判断
     pass
@@ -60,10 +61,9 @@ def get_url_list(url): #得到图片的下载链接
             last_html = get(max_web_page_url, headers=public_headers).text
             soup_lastpage = BeautifulSoup(last_html, 'lxml')
             last_web_page_num = int(soup_lastpage.find_all("ul",class_="pagination")[0](string=True)[-2])  
-        print(url , "最大页数为：", str(max_web_page_num))
-    
     options_list = soup_lastpage.find_all('select')[2].find_all('option') # 用来取出存放页数select中的option标签数量来计算页数
     pages = len(options_list) + (max_web_page_num - 1 ) * 500 # 设置一个变量表征页数
+    print("页数位于", str(max_web_page_num), "网页文件内，共计 ", pages , "页")
     comic_page_urls = []     # 设置一个列表用来存储所有的最终url
     comic_page1_id = soup.find(id='album_photo_00001.jpg')['data-original']    # 存放每一页page图片 ## 取出第一页的页数根据页数的命名规则来自己计算出后面的页数的url，减少用库进行查的时间
     comic_page_url_head_temp = '/'.join(comic_page1_id.split('/')[:-1])     # 取出页数url判断之前的服务器路径
@@ -98,33 +98,32 @@ def makeDir(url): # 根据传入的url创建以名称为根据的文件夹，返
         os.makedirs(path)
     return path
 
-def download_image(url_path):# 下载图片,定义一个方法方便开启多线程,返回下载该图片的相对路径
+def download_image(url_path , timeout = 30):# 下载图片,定义一个方法方便开启多线程,返回下载该图片的相对路径
     url = url_path[0]
     path = url_path[1]
     convert_status = url_path[2]
-    global ERROR_PAGE_LIST #全局变量
-    try:
-        comic_page = get(url, headers=public_headers)
-        if comic_page.status_code != 200:
-            # print('!= 200')
-            ERROR_PAGE_LIST.append(url_path)
-            pass
-    except Exception:
-        # print('Download Error')
-        ERROR_PAGE_LIST.append(url_path)
-        pass
     comic_name = url.split('/')[-1].split('?')[0]
     comic_local_position = path + '/' + comic_name
-    image_bytes = BytesIO(comic_page.content)
-    if image_bytes.__sizeof__() >= 1: #防止下载的图片为0kb，玄学？！
-        image_source = Image.open(image_bytes)
-        image_source.save(comic_local_position)
-    else:
-        # print('content is lost')
-        ERROR_PAGE_LIST.append(url_path)
+    global ERROR_PAGE_LIST #全局变量
+    try:
+        ERROR_PAGE_LIST.append(url_path) # 先把网页加入错误列表，以防网络错误、I/O错误引发中断造成遗漏
+        #注意：如果上一次没有解决的错误网页，会再次重复记录。所以重试下载时需要去重。
+        comic_page = get(url, headers=public_headers, timeout = timeout) #可从传入timeout参数防止网络问题阻塞
+        # if comic_page.status_code != 200:
+            # print('!= 200')
+        image_bytes = BytesIO(comic_page.content)
+        if image_bytes.__sizeof__() >= 1: #防止下载的图片为0kb，玄学？！
+            image_source = Image.open(image_bytes)
+            image_source.save(comic_local_position)
+        else:
+            # print('content is lost')
+            # raise Exception("0字节图片")  # 后来发现没必要处理0k图片
+            WARNING_PAGE_LIST.append(url_path) #额外记录，后续不处理
+        if convert_status:
+            convertImg(comic_local_position) # 对“无耻”的以修改图片的反爬虫机制进行反制！
+    except Exception:
+        # print('Download Error')
         pass
-    if convert_status:
-        convertImg(comic_local_position) # 对“无耻”的以修改图片的反爬虫机制进行反制！
     if url_path in ERROR_PAGE_LIST: # 如果下载成功就再下载列表删除它
         ERROR_PAGE_LIST.remove(url_path)
 
@@ -189,6 +188,7 @@ def main(id):
     start_time = time.time()  # 开始执行时间
     downloadByThread(comic_num, url_path_list)
     while ERROR_PAGE_LIST:
+        ERROR_PAGE_LIST = list( set (ERROR_PAGE_LIST))  #对错误记录去重
         print('当前有' + str(len(ERROR_PAGE_LIST)) + '张comic image由于不可抗网络因素下载失败，正在第' + str(
             re_download_count) + '次重新下载...')
         re_download_count += 1
