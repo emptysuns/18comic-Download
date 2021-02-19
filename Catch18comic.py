@@ -125,6 +125,7 @@ def download_image(url_path , timeout = 30):# 下载图片,定义一个方法方
     comic_name = url.split('/')[-1].split('?')[0]
     comic_local_position = path + '/' + comic_name
     global ERROR_PAGE_LIST #全局变量
+    global WARNING_PAGE_LIST 
     try:
         ERROR_PAGE_LIST.append(url_path) # 先把网页加入错误列表，以防网络错误、I/O错误引发中断造成遗漏
         #注意：如果上一次没有解决的错误网页，会再次重复记录。所以重试下载时需要去重。
@@ -191,6 +192,7 @@ def downloadByThread(comic_num, url_path_list):
 
 def main(mirror, id):
     convert_status = False #设置处理反爬机制的问题,False为未对comic进行切割
+    global ERROR_PAGE_LIST #全局变量
     id = int(id)
     comic_num = 0 # 根据下载的页数决定线程数量
     if id >= 220971:# 静态检测检测!!!有必要再改成动态
@@ -247,6 +249,5 @@ if __name__ == '__main__':
                 download_count += 1
                 continue
         else:
-            id = url.split('/')[4]
             main(mirror, id)
             download_count += 1
