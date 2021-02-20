@@ -2,9 +2,11 @@ from requests import *
 from bs4 import BeautifulSoup
 from PIL import Image ##调用image库对有反转的图片进行转换
 from io import BytesIO
+from tqdm import tqdm #进度条
 import os #创建文件夹，保存下载好的图片
 import re
-import threading #多线程支持库，对于这种io密集操作相对于多进程还是换成多线程比较好
+# import threading #多线程支持库，对于这种io密集操作相对于多进程还是换成多线程比较好
+from concurrent import futures #异步执行模块。【警告】需求python版本 3.2以上！
 import time
 '''
 基于BeautifulSoup解析库的py爬虫爬取18comic
@@ -15,6 +17,9 @@ public_headers = {
 
 ERROR_PAGE_LIST = [] #声明一个全局变量，用来储存因诸如网络等不可抗元素导致的下载失败，从而进行重新下载！（这个变量只是存储单次下载的错误）
 WARNING_PAGE_LIST = [] #存储有问题但不需要处理的图片。有些图片经过人工验证发现在服务器上就是0字节，记录到这里但不处理
+# semaphore = threading.Semaphore(30)  #下载同时执行的线程数。已用ThreadPoolExecutor取代semaphore控制并行线程数
+## semaphore是用阻塞acquire()的方式限制同时执行的线程数。简单方便但无法显示进度。留着这个说不定以后同时下载多本的时候限流
+MAX_WORKERS = 30 #通过concurrent模块的线程池中控制最大下载数的变量
 
 def checkImgConvert(url): #判断图片是否做过反爬机制，比较狂野的使用id分析,没有对前端进行分析来判断
     pass
@@ -63,14 +68,34 @@ def convertImg(img_url):
 
 
 def get_url_list(url): #得到图片的下载链接
-    response = get(url, headers=public_headers)
-    html = response.text
-    soup = BeautifulSoup(html, 'lxml')
+    i = 3   #重试次数
+    while i>0:
+        try:
+            response = get(url, headers=public_headers, timeout = (5, 10))   #连接超时5s，读取超时10s
+            html = response.text
+            soup = BeautifulSoup(html, 'lxml')
+            i = 0  #能正确获取网页，则排除网络问题，其他问题（比如新建目录权限不够）不需要重试（也不需要捕捉错误）
+        except exceptions.RequestException as e:
+            print( e , "正在重新访问网址" )
+            i -= 1  #剩余重试计数器
+    #创建目录：原mkDir()的功能
+    title = soup.title.string
+    dir_name = title.split('|')[0]
+    dir_name = re.sub('/', '' ,dir_name) # 去除反斜杠，以免产生不必要的子文件夹
+    path = r'download/' + dir_name
+    path = re.sub('[:*?"<>|]', '' ,path) # 去除特殊字符
+    # print(path)
+    folder = os.path.exists(path)
+    if not folder:
+        os.makedirs(path)
+    print('成功创建目录', path)
+    #mkDir()结束，后续path作为元组的一部分在return输出
+    #查找下载链接
     if soup.find_all("a",class_="prevnext") != [] :  #网页存在下一页按钮
         # print("发现多个页面")
         max_web_page_num = 1  # 因为有多页，所以最少2页，取初始值为1以便第一个while循环正常执行
         max_web_page_url = url + "?page=" + str(max_web_page_num)
-        last_web_page_num = int(soup.find_all("ul",class_="pagination")[0](string=True)[-2])  #最后一个是下一页按钮，倒数第二个是当前跳转最大页面
+        last_web_page_num = int(soup.find_all("ul",class_="pagination")[0](string=True)[-2])#最后一个是下一页按钮，倒数第二个是当前跳转最大页面
         while last_web_page_num > max_web_page_num : #可跳转的最后页面大于记录的最大页数时，修正最大页数并检查
             max_web_page_num = last_web_page_num
             max_web_page_url = url + "?page=" + str(max_web_page_num)
@@ -102,23 +127,36 @@ def get_url_list(url): #得到图片的下载链接
         #print(comic_page_url + '\n')         # 测试每个url是否正正常输出
         comic_page_urls.append(comic_page_url)         # 将每一个url加入到存储的列表中
     # print(comic_page_urls)     # 测试存储url的列表是否正常输出
-    return comic_page_urls
+    return (comic_page_urls, path)
 
 def makeDir(url): # 根据传入的url创建以名称为根据的文件夹，返回文件夹路径
-    response = get(url, headers=public_headers)
-    html = response.text
-    soup = BeautifulSoup(html, 'lxml')
-    title = soup.title.string
-    dir_name = title.split('|')[0]
-    path = r'download/' + dir_name
-    path = re.sub('[:*?"<>|]', '' ,path) # 去除特殊字符
-    # print(path)
-    folder = os.path.exists(path)
-    if not folder:
-        os.makedirs(path)
-    return path
+    #该方法已整合入get_url_list，但尚未删除
+    i = 3   #重试次数
+    while i>0:
+        try:
+            response = get(url, headers=public_headers, timeout = (5, 10))   #连接超时5s，读取超时10s
+            html = response.text
+            soup = BeautifulSoup(html, 'lxml')
+            title = soup.title.string
+            dir_name = title.split('|')[0]
+            dir_name = re.sub('/', '' ,dir_name) # 去除反斜杠，以免产生不必要的子文件夹
+            path = r'download/' + dir_name
+            path = re.sub('[:*?"<>|]', '' ,path) # 去除特殊字符
+            # print(path)
+            folder = os.path.exists(path)
+            if not folder:
+                os.makedirs(path)
+            return path
+        except exceptions.RequestException as e:
+            print( e , "正在重新访问网址" )
+            i -= 1  #剩余重试计数器
+        except Exception: 
+            print( "无法建立文件夹，请检查权限" )
+            i = 0  #重试计数器清零
+    print("【错误】 建立文件夹失败")
 
-def download_image(url_path , timeout = 30):# 下载图片,定义一个方法方便开启多线程,返回下载该图片的相对路径
+def download_image(url_path , timeout = (5, 30)):# 下载图片,定义一个方法方便开启多线程,返回下载该图片的相对路径
+    #semaphore.acquire()  #执行中的线程计数器+1。已被ThreadPoolExecutor取代
     url = url_path[0]
     path = url_path[1]
     convert_status = url_path[2]
@@ -138,49 +176,75 @@ def download_image(url_path , timeout = 30):# 下载图片,定义一个方法方
             image_source.save(comic_local_position)
         else:
             # print('content is lost')
-            # raise Exception("0字节图片")  # 后来发现没必要处理0k图片
+            # raise Exception("0字节图片")  # 后来发现没必要处理0k图片。是服务器的问题，重试也没用，过几天服务器就好了
             WARNING_PAGE_LIST.append(url_path) #额外记录，后续不处理
         if convert_status:
             convertImg(comic_local_position) # 对“无耻”的以修改图片的反爬虫机制进行反制！
     except Exception:
-        # print('Download Error')
+        # print('Download Error, File', url_path)
+        # semaphore.release()  #执行中的线程计数器-1。已被ThreadPoolExecutor取代
         pass
     if url_path in ERROR_PAGE_LIST: # 如果下载成功就再下载列表删除它
         ERROR_PAGE_LIST.remove(url_path)
+        # semaphore.release()  #执行中的线程计数器-1。已被ThreadPoolExecutor取代
+        # print ("【下载完成】 ", url_path[0])
+        return url_path #下载完成后返回url地址，完成的地址记录在进程池中，用于标记下载进度，或可取代ERROR_PAGE_LIST的记录动作
 
 def checkPluralPage(url): #判断是不是有复数章节需要下载，有返回True，无返回False
-    response = get(url)
-    html = response.text
-    soup = BeautifulSoup(html, 'lxml')
-    switch_btn_class = soup.find_all(name='a', attrs={'class': 'switch_btn'})
-    if switch_btn_class:
-        flag = True
-    else:
-        flag = False
-    return flag
+    i = 3   #重试次数
+    while i>0:
+        try:
+            response = get(url, timeout = (5, 10))   #连接超时5s，读取超时10s
+            html = response.text
+            soup = BeautifulSoup(html, 'lxml')
+            switch_btn_class = soup.find_all(name='a', attrs={'class': 'switch_btn'})
+            if switch_btn_class:
+                flag = True
+            else:
+                flag = False
+            return flag
+        except exceptions.RequestException as e:
+            print( e, "正在重新访问网址"  )
+            i -= 1  #剩余重试计数器
+    print("【错误】 无法获取网页数据")
+    
+
 
 # 得到多章节comic所有的url返回一个列表
 def getChapterList(url):
-    response = get(url)
-    html = response.text
-    soup = BeautifulSoup(html, 'lxml')
-    btn_toolbar_class = soup.find_all(name='ul', attrs={'class': 'btn-toolbar'})
-    pattern = re.compile('<a href="/photo/(.*?)">.*?</a>', re.S)
-    chapter_find = []
-    for a in btn_toolbar_class[0].contents:
-        id = re.findall(pattern, str(a))
-        if id:
-            chapter_find.append(id)
-    last_chapter = []
-    for chapter in chapter_find:  # findall查找的出的是返回列表，"暂时"这么让它返回列表，便于后续操作
-        last_chapter.append(chapter[0])
-    return last_chapter
+    i = 3   #重试次数
+    while i>0:
+        try:
+            response = get(url, timeout = (5, 10))   #连接超时5s，读取超时10s
+            html = response.text
+            soup = BeautifulSoup(html, 'lxml')
+            btn_toolbar_class = soup.find_all(name='ul', attrs={'class': 'btn-toolbar'})
+            pattern = re.compile('<a href="/photo/(.*?)">.*?</a>', re.S)
+            chapter_find = []
+            for a in btn_toolbar_class[0].contents:
+                id = re.findall(pattern, str(a))
+                if id:
+                    chapter_find.append(id)
+            last_chapter = []
+            for chapter in chapter_find:  # findall查找的出的是返回列表，"暂时"这么让它返回列表，便于后续操作
+                last_chapter.append(chapter[0])
+            return last_chapter
+        except exceptions.RequestException as e:
+            print( e , "正在重新访问网址" )
+            i -= 1  #剩余重试计数器
+    print("【错误】 无法获取网页数据")
 
 # 调用此方法来判断开启多线程程的个数
 def downloadByThread(comic_num, url_path_list):
+    workers = min(MAX_WORKERS, comic_num) #确定线程池数量，避免超出页数
+    print('正在开始多线程下载（线程数量:' + str(workers) + ')请稍后......  （统计已下载数量，进度前慢后快）')
+    with futures.ThreadPoolExecutor(workers) as executor: #启动线程池
+        results = list(tqdm(executor.map(download_image, url_path_list), total = comic_num, ncols=75, leave=True)) #加入线程池并记录结果
+        #上面tqdm记录进度条的参数是：executor中成果的结果数、最大结果数、指定列宽(防止cmd中超过)、防止多行(cmd的锅))
+    return results   #返回已下载的地址
+    
+    """ #原处理方法无法正确显示进度条，会在一瞬间跑满然后继续等待
     thread_list = []  # 用于存放线程的列表
-    print('正在开始多线程下载（线程数量:' + str(comic_num) + ')请稍后......')
-    start_time = time.time()
     for num in range(comic_num):
         # 根据页数动态创建线程
         thread_one = threading.Thread(target=download_image, name='DownloadPageIs' + str(num), args=(url_path_list[num],))
@@ -189,10 +253,11 @@ def downloadByThread(comic_num, url_path_list):
         thread.start()  # 开始线程
     for thread in thread_list:
         thread.join()  # 同步线程
+     """
 
 def main(mirror, id):
-    convert_status = False #设置处理反爬机制的问题,False为未对comic进行切割
     global ERROR_PAGE_LIST #全局变量
+    convert_status = False #设置处理反爬机制的问题,False为未对comic进行切割
     id = int(id)
     comic_num = 0 # 根据下载的页数决定线程数量
     if id >= 220971:# 静态检测检测!!!有必要再改成动态
@@ -200,15 +265,14 @@ def main(mirror, id):
     url = 'https://' + mirror +'/photo/' + str(id)
     re_download_count = 1 #由于网络等种种原因而重新下载次数
     print('解析成功,开始下载',url)
-    path = makeDir(url)
-    print('成功创建目录', path)
-    url_list = get_url_list(url)
+    #path = makeDir(url)
+    (url_list,path) = get_url_list(url)
     url_path_list = [] # 里面加入path等传入下载方法的信息
     for url_in_list in url_list:
         url_path_list.append((url_in_list, path, convert_status))
     comic_num = len(url_path_list)
     start_time = time.time()  # 开始执行时间
-    downloadByThread(comic_num, url_path_list)
+    finished_url = downloadByThread(comic_num, url_path_list)  #多线程下载
     while ERROR_PAGE_LIST:
         ERROR_PAGE_LIST = list( set (ERROR_PAGE_LIST))  #对错误记录去重
         print('当前有' + str(len(ERROR_PAGE_LIST)) + '张comic image由于不可抗网络因素下载失败，正在第' + str(
