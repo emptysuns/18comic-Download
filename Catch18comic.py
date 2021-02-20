@@ -153,7 +153,7 @@ def makeDir(url): # 根据传入的url创建以名称为根据的文件夹，返
         except Exception: 
             print( "无法建立文件夹，请检查权限" )
             i = 0  #重试计数器清零
-    print("【错误】 建立文件夹失败")
+
 
 def download_image(url_path , timeout = (5, 30)):# 下载图片,定义一个方法方便开启多线程,返回下载该图片的相对路径
     #semaphore.acquire()  #执行中的线程计数器+1。已被ThreadPoolExecutor取代
@@ -165,7 +165,8 @@ def download_image(url_path , timeout = (5, 30)):# 下载图片,定义一个方�
     global ERROR_PAGE_LIST #全局变量
     global WARNING_PAGE_LIST 
     try:
-        ERROR_PAGE_LIST.append(url_path) # 先把网页加入错误列表，以防网络错误、I/O错误引发中断造成遗漏
+        if not url_path in ERROR_PAGE_LIST:  
+            ERROR_PAGE_LIST.append(url_path) # 先把网页加入错误列表，以防网络错误、I/O错误引发中断造成遗漏
         #注意：如果上一次没有解决的错误网页，会再次重复记录。所以重试下载时需要去重。
         comic_page = get(url, headers=public_headers, timeout = timeout) #可从传入timeout参数防止网络问题阻塞
         # if comic_page.status_code != 200:
@@ -180,15 +181,16 @@ def download_image(url_path , timeout = (5, 30)):# 下载图片,定义一个方�
             WARNING_PAGE_LIST.append(url_path) #额外记录，后续不处理
         if convert_status:
             convertImg(comic_local_position) # 对“无耻”的以修改图片的反爬虫机制进行反制！
+        if url_path in ERROR_PAGE_LIST: # 如果下载成功就再下载列表删除它
+            ERROR_PAGE_LIST.remove(url_path)
+            # semaphore.release()  #执行中的线程计数器-1。已被ThreadPoolExecutor取代
+            # print ("【下载完成】 ", url_path[0])
+            return url_path #下载完成后返回url地址，完成的地址记录在进程池中，用于标记下载进度，或可取代ERROR_PAGE_LIST的记录动作
     except Exception:
         # print('Download Error, File', url_path)
         # semaphore.release()  #执行中的线程计数器-1。已被ThreadPoolExecutor取代
         pass
-    if url_path in ERROR_PAGE_LIST: # 如果下载成功就再下载列表删除它
-        ERROR_PAGE_LIST.remove(url_path)
-        # semaphore.release()  #执行中的线程计数器-1。已被ThreadPoolExecutor取代
-        # print ("【下载完成】 ", url_path[0])
-        return url_path #下载完成后返回url地址，完成的地址记录在进程池中，用于标记下载进度，或可取代ERROR_PAGE_LIST的记录动作
+
 
 def checkPluralPage(url): #判断是不是有复数章节需要下载，有返回True，无返回False
     i = 3   #重试次数
@@ -206,8 +208,7 @@ def checkPluralPage(url): #判断是不是有复数章节需要下载，有返�
         except exceptions.RequestException as e:
             print( e, "正在重新访问网址"  )
             i -= 1  #剩余重试计数器
-    print("【错误】 无法获取网页数据")
-    
+
 
 
 # 得到多章节comic所有的url返回一个列表
@@ -232,12 +233,11 @@ def getChapterList(url):
         except exceptions.RequestException as e:
             print( e , "正在重新访问网址" )
             i -= 1  #剩余重试计数器
-    print("【错误】 无法获取网页数据")
 
 # 调用此方法来判断开启多线程程的个数
 def downloadByThread(comic_num, url_path_list):
     workers = min(MAX_WORKERS, comic_num) #确定线程池数量，避免超出页数
-    print('正在开始多线程下载（线程数量:' + str(workers) + ')请稍后......  （统计已下载数量，进度前慢后快）')
+    print('正在开始多线程下载（线程数量:' + str(workers) + ')请稍后......')
     with futures.ThreadPoolExecutor(workers) as executor: #启动线程池
         results = list(tqdm(executor.map(download_image, url_path_list), total = comic_num, ncols=75, leave=True)) #加入线程池并记录结果
         #上面tqdm记录进度条的参数是：executor中成果的结果数、最大结果数、指定列宽(防止cmd中超过)、防止多行(cmd的锅))
@@ -256,7 +256,6 @@ def downloadByThread(comic_num, url_path_list):
      """
 
 def main(mirror, id):
-    global ERROR_PAGE_LIST #全局变量
     convert_status = False #设置处理反爬机制的问题,False为未对comic进行切割
     id = int(id)
     comic_num = 0 # 根据下载的页数决定线程数量
@@ -274,9 +273,10 @@ def main(mirror, id):
     start_time = time.time()  # 开始执行时间
     finished_url = downloadByThread(comic_num, url_path_list)  #多线程下载
     while ERROR_PAGE_LIST:
-        ERROR_PAGE_LIST = list( set (ERROR_PAGE_LIST))  #对错误记录去重
-        print('当前有' + str(len(ERROR_PAGE_LIST)) + '张comic image由于不可抗网络因素下载失败，正在第' + str(
-            re_download_count) + '次重新下载...')
+        print('当前有' + str(len(ERROR_PAGE_LIST)) + '张comic image由于不可抗网络因素下载失败，')
+        #for i in ERROR_PAGE_LIST:    #显示失败的图片编号用于debug
+        #    print(i[0].split('/')[-1].split('?')[0])
+        print('正在第' + str(re_download_count) + '次重新下载...')
         re_download_count += 1
         comic_num = len(ERROR_PAGE_LIST)
         downloadByThread(comic_num, ERROR_PAGE_LIST)
@@ -300,7 +300,7 @@ if __name__ == '__main__':
                     print('当前共有'+str(len(chapter_list))+'话需下载\n')
                     chapter_count = 1
                     for id in chapter_list:
-                        print('正在下载第'+str(chapter_count)+'话，请稍后...')
+                        print('正在下载第'+str(chapter_count)+'话/共', str(len(chapter_list)), '话，请稍后...')
                         main(mirror, id)
                         chapter_count += 1
                     print('共'+str(len(chapter_list))+'话下载完毕！\n')
