@@ -59,7 +59,12 @@ def mkIndex( path , imgs, preLinks, nextLinks):
         body = body + "</div><div style='position: fixed ; left: 5px; top: 100px; background:#00FFFF'><a href='..\\"    \
                               + preLinks[-1] + "\\index.html'>←上一话</a></br>"   #添加“上一话”的链接
         for j in range( len(preLinks) ):  #前文页面的目录序号
-            body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
+            if (len(preLinks) - j) < 5 :  #前5话有连续的目录
+                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
+            elif (len(preLinks) - j)%5 == 0 and (len(preLinks) - j) <30 :  #前5-30话的每5话添加到目录
+                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
+            elif  j == 0 :  #  当preLinks >30 太多的时候，前30以外的直接只留第一话(j=0)到目录
+                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
     #添加后文章节的目录
     if nextLinks == [] :  #当前是最新一话，没有后文章节
         body += "</div>"    #只添加前文目录容器的结尾标签
@@ -67,7 +72,12 @@ def mkIndex( path , imgs, preLinks, nextLinks):
         body = body + "</div><div style='position: fixed ; right: 5px; top: 100px; background:#00FFFF'><a href='..\\"     \
                               + nextLinks[0] + "\\index.html'>下一话→</a></br>"   #添加“下一话”的链接
         for k in range( len(nextLinks) ):  #后文页面的目录序号
-            body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
+            if k <5  :  #仅仅接下来5话有连续的目录
+                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
+            elif  k%5 == 0 and k < 30  :  #5话之后的每5话添加到目录
+                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
+            elif  k == len(nextLinks) - 1 :   # k>=30 太多的时候，直接只留最后一话到目录
+                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
     #收尾标签
     body += "</div></body></html>"  #前文目录、body、html的结束标签
     #写入文件
@@ -141,9 +151,13 @@ def get_url_list2(url): #原get_url_list方法采用编号推算，对编号断�
     # rawText[3].split("=")[1][1:-1]   # var aid = xxxxxx 是记录的该图集的id，格式如下: /photo/xxxxxx/
     rawList = rawText[9].split("[")[1][:-2].split(",")  #处理后的图片编号，但包含引号
     comic_page_urls = []     # 设置一个列表用来存储所有的最终url
-    comic_page1_id = soup.find(id='album_photo_00001.jpg')['data-original']    # 存放每一页page图片 ## 
-    comic_page_url_head = '/'.join(comic_page1_id.split('/')[:-1])  #图片网址前缀
-    comic_page_id_tail = comic_page1_id.split('?')[-1]                   #图片网址后缀
+    anyJpgNum = 1
+    anyJpg = soup.find(id='album_photo_%05d.jpg'%anyJpgNum)  #随便找一个页面，从album_photo_00001.jpg开始
+    while anyJpg is None :    #  恰好00001缺失，导致无法获取图片地址cdn形式的前缀
+        anyJpgNum += 1  # 找下一个图片
+        anyJpg = soup.find(id='album_photo_%05d.jpg'%anyJpgNum)
+    comic_page_url_head = '/'.join(anyJpg['data-original'].split('/')[:-1])  #图片网址前缀
+    comic_page_id_tail = anyJpg['data-original'].split('?')[-1]                   #图片网址后缀
     for page in rawList :
         comic_page_urls.append( comic_page_url_head + "/" +page[1:-1] + "?" + comic_page_id_tail )  #前缀加上去引号的图片名
     return (comic_page_urls, path)
