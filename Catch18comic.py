@@ -37,7 +37,7 @@ def getMirror(): #获取镜像列表，以防网址无法访问
                 pass
         # mirrors 的默认排序就是发布页的排序。即JM主站、JM海外分流1、JM中国、JM中国分流1、JM中国分流2
         # 没必要引入ping，否则会引入很多网络相关的模块，增加打包大小。这里直接粗暴下载首页面，失败踢掉。默认使用第一个能用的，即mirror[0]
-        # 改方法未使用，当今镜像为采纳输入下载地址时的url ！！！
+        # 该方法未使用，当今镜像为采纳输入下载地址时的url ！！！
         # 考虑后续可能加入自动抓取更新，需要尽量直连，因此加入这个功能（不需要直连时，经梯子主站能访问则默认从主站下载）
         return mirrors
 
@@ -45,7 +45,53 @@ def mkIndex( path , imgs, preLinks, nextLinks):
     #imgs可以是数字（图片总数），也可以是列表（图片名，包含扩展名）
     # title文本，preLinks和nextLinks是上下集链接中的文件夹名(列表）
     body = "<!DOCTYPE html> <html lang='en'> <head> <title>" +path.split("/")[1] + \
-                 "</title></head> <body style='text-align: center;'> <div>"   #html正文部分
+                 '''</title><style type="text/css">
+.button {
+    position: relative;
+    overflow: visible;
+    display: inline-block;
+    padding: 0.5em 1em;
+    border: 1px solid #3072b3;
+    border-bottom-color: #2a65a0;
+    color: #fff;
+    margin: 0;
+    text-decoration: none;
+    text-shadow: -1px -1px 0 rgba(0,0,0,0.3);
+    text-align: center;
+    font:15px/normal sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+    background-color: #dc5f59;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#599bdc), to(#3072b3));
+    background-image: -moz-linear-gradient(#599bdc, #3072b3);
+    background-image: -ms-linear-gradient(#599bdc, #3072b3);
+    background-image: -o-linear-gradient(#599bdc, #3072b3);
+    background-image: linear-gradient(#599bdc, #3072b3);
+    -moz-background-clip: padding; /* for Firefox 3.6 */
+    background-clip: padding-box;
+    border-radius: 0.2em;
+    /* IE hacks */
+    zoom: 1;
+    *display: inline;
+}
+.button:active,
+.button.active {
+    border-color: #2a65a0;
+    border-bottom-color: #3884cd;
+    background-color: #3072b3;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#3072b3), to(#599bdc));
+    background-image: -moz-linear-gradient(#3072b3, #599bdc);
+    background-image: -ms-linear-gradient(#3072b3, #599bdc);
+    background-image: -o-linear-gradient(#3072b3, #599bdc);
+    background-image: linear-gradient(#3072b3, #599bdc);
+}
+/* overrides extra padding on button elements in Firefox */
+.button::-moz-focus-inner {
+    padding: 0;
+    border: 0;
+}
+</style></head>\n<body style='text-align: center;'> <div>'''   #html正文部分
     if isinstance( imgs, int ) : #是数字
         for i in range(1, imgs + 1):  #图片文件的编号
             body += "<img src=%05d.jpg> "%i  #5位数字用0补齐
@@ -54,10 +100,10 @@ def mkIndex( path , imgs, preLinks, nextLinks):
             body = body + "<img src=" + i + "> "
     #添加之前章节的目录
     if preLinks == [] :  #当前是第一话，没有前文章节
-        body += "</div>"    #只添加图片容器的结尾标签
+        body += "</div>\n"    #只添加图片容器的结尾标签
     else :
-        body = body + "</div><div style='position: fixed ; left: 5px; top: 100px; background:#00FFFF'><a href='..\\"    \
-                              + preLinks[-1] + "\\index.html'>←上一话</a></br>"   #添加“上一话”的链接
+        body = body + "</div>\n <div style='position: fixed ; left: 5px; top: 100px; background:#F0F0F0'><a href='..\\"    \
+                              + preLinks[-1] + "\\index.html' class='button'>←上一话</a></br>"   #添加“上一话”的链接
         for j in range( len(preLinks) ):  #前文页面的目录序号
             if (len(preLinks) - j) < 5 :  #前5话有连续的目录
                 body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
@@ -67,10 +113,10 @@ def mkIndex( path , imgs, preLinks, nextLinks):
                 body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第1话&lt;&lt;</a></br>"
     #添加后文章节的目录
     if nextLinks == [] :  #当前是最新一话，没有后文章节
-        body += "</div>"    #只添加前文目录容器的结尾标签
+        body += "</div>\n"    #只添加前文目录容器的结尾标签
     else :
-        body = body + "</div><div style='position: fixed ; right: 5px; top: 100px; background:#00FFFF'><a href='..\\"     \
-                              + nextLinks[0] + "\\index.html'>下一话→</a></br>"   #添加“下一话”的链接
+        body = body + "</div>\n <div style='position: fixed ; right: 5px; top: 100px; background:#F0F0F0'><a href='..\\"     \
+                              + nextLinks[0] + "\\index.html' class='button'>下一话→</a></br>"   #添加“下一话”的链接
         for k in range( len(nextLinks) ):  #后文页面的目录序号
             if k <5  :  #仅仅接下来5话有连续的目录
                 body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
@@ -79,7 +125,7 @@ def mkIndex( path , imgs, preLinks, nextLinks):
             elif  k == len(nextLinks) - 1 :   # k>=30 太多的时候，直接只留最后一话到目录
                 body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>&gt;&gt;第" + str(k+len(preLinks) + 2) + "话</a></br>"
     #收尾标签
-    body += "</div></body></html>"  #前文目录、body、html的结束标签
+    body += "\n</div></body></html>"  #前文目录、body、html的结束标签
     #写入文件
     fileName = path + '/index.html'  
     with open( fileName , "w",encoding='utf-8' ) as file :     #覆盖已存在的文件以更新目录
