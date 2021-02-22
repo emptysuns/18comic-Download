@@ -62,9 +62,9 @@ def mkIndex( path , imgs, preLinks, nextLinks):
             if (len(preLinks) - j) < 5 :  #前5话有连续的目录
                 body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
             elif (len(preLinks) - j)%5 == 0 and (len(preLinks) - j) <30 :  #前5-30话的每5话添加到目录
-                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
+                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话&lt;</a></br>"
             elif  j == 0 :  #  当preLinks >30 太多的时候，前30以外的直接只留第一话(j=0)到目录
-                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
+                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第1话&lt;&lt;</a></br>"
     #添加后文章节的目录
     if nextLinks == [] :  #当前是最新一话，没有后文章节
         body += "</div>"    #只添加前文目录容器的结尾标签
@@ -75,9 +75,9 @@ def mkIndex( path , imgs, preLinks, nextLinks):
             if k <5  :  #仅仅接下来5话有连续的目录
                 body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
             elif  k%5 == 0 and k < 30  :  #5话之后的每5话添加到目录
-                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
+                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>&gt;第" + str(k+len(preLinks) + 2) + "话</a></br>"
             elif  k == len(nextLinks) - 1 :   # k>=30 太多的时候，直接只留最后一话到目录
-                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
+                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>&gt;&gt;第" + str(k+len(preLinks) + 2) + "话</a></br>"
     #收尾标签
     body += "</div></body></html>"  #前文目录、body、html的结束标签
     #写入文件
