@@ -46,6 +46,7 @@ def mkIndex( path , imgs, preLinks, nextLinks):
     # title文本，preLinks和nextLinks是上下集链接中的文件夹名(列表）
     body = "<!DOCTYPE html> <html lang='en'> <head> <title>" +path.split("/")[1] + \
                  '''</title><style type="text/css">
+img{ max-width:100% }
 .button {
     position: relative;
     overflow: visible;
