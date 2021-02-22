@@ -102,28 +102,28 @@ def mkIndex( path , imgs, preLinks, nextLinks):
     if preLinks == [] :  #当前是第一话，没有前文章节
         body += "</div>\n"    #只添加图片容器的结尾标签
     else :
-        body = body + "</div>\n <div style='position: fixed ; left: 5px; top: 100px; background:#F0F0F0'><a href='..\\"    \
-                              + preLinks[-1] + "\\index.html' class='button'>←上一话</a></br>"   #添加“上一话”的链接
+        body = body + '</div>\n <div style="position: fixed ; left: 5px; top: 100px; background:#F0F0F0"><a href="..\\'    \
+                              + preLinks[-1] + '\\index.html" class="button">←上一话</a></br>'   #添加“上一话”的链接
         for j in range( len(preLinks) ):  #前文页面的目录序号
             if (len(preLinks) - j) < 5 :  #前5话有连续的目录
-                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话</a></br>"
+                body = body + '<a href="..\\' + preLinks[j] + '\\index.html">第' + str(j+1) + "话</a></br>"  #字符串用单引号，herf用双引号，防止文件夹名字有 ' 符号造成链接失效
             elif (len(preLinks) - j)%5 == 0 and (len(preLinks) - j) <30 :  #前5-30话的每5话添加到目录
-                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第" + str(j+1) + "话&lt;</a></br>"
+                body = body + '<a href="..\\' + preLinks[j] + '\\index.html">第' + str(j+1) + "话&lt;</a></br>"
             elif  j == 0 :  #  当preLinks >30 太多的时候，前30以外的直接只留第一话(j=0)到目录
-                body = body + "<a href='..\\" + preLinks[j] + "\\index.html'>第1话&lt;&lt;</a></br>"
+                body = body + '<a href="..\\' + preLinks[j] + '\\index.html">第1话&lt;&lt;</a></br>' 
     #添加后文章节的目录
     if nextLinks == [] :  #当前是最新一话，没有后文章节
         body += "</div>\n"    #只添加前文目录容器的结尾标签
     else :
-        body = body + "</div>\n <div style='position: fixed ; right: 5px; top: 100px; background:#F0F0F0'><a href='..\\"     \
-                              + nextLinks[0] + "\\index.html' class='button'>下一话→</a></br>"   #添加“下一话”的链接
+        body = body + '</div>\n <div style="position: fixed ; right: 5px; top: 100px; background:#F0F0F0"><a href="..\\'     \
+                              + nextLinks[0] + '\\index.html" class="button">下一话→</a></br>'   #添加“下一话”的链接
         for k in range( len(nextLinks) ):  #后文页面的目录序号
             if k <5  :  #仅仅接下来5话有连续的目录
-                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>第" + str(k+len(preLinks) + 2) + "话</a></br>"
+                body = body + '<a href="..\\' + nextLinks[k] + '\\index.html">第' + str(k+len(preLinks) + 2) + "话</a></br>" #保证href要用双引号
             elif  k%5 == 0 and k < 30  :  #5话之后的每5话添加到目录
-                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>&gt;第" + str(k+len(preLinks) + 2) + "话</a></br>"
+                body = body + '<a href="..\\' + nextLinks[k] + '\\index.html">&gt;第' + str(k+len(preLinks) + 2) + "话</a></br>"
             elif  k == len(nextLinks) - 1 :   # k>=30 太多的时候，直接只留最后一话到目录
-                body = body + "<a href='..\\" + nextLinks[k] + "\\index.html'>&gt;&gt;第" + str(k+len(preLinks) + 2) + "话</a></br>"
+                body = body + '<a href="..\\' + nextLinks[k] + '\\index.html">&gt;&gt;第' + str(k+len(preLinks) + 2) + "话</a></br>"
     #收尾标签
     body += "\n</div></body></html>"  #前文目录、body、html的结束标签
     #写入文件
@@ -435,7 +435,7 @@ if __name__ == '__main__':
     while(1):
         url = input('第'+str(download_count)+'次下载,请输入您想要下载comic的下载链接:\n')
         id = url.split('/')[4]
-        mirror = url.split('/')[2]
+        mirror = url.split('/')[2] #记录输入的镜像站点，传入main(mirror,id)从该镜像下载。也可指定其他镜像
         flag = checkPluralPage(url)
         if flag: #有就进行解析，无就直接下载
             check_all_download = input('Tips:检测到您输入的链接是包括多个章节的，请判断是否将所有章节都下载：\n输入数字1:下载全部章节\t输入数字0:只下载当前章节\n')
